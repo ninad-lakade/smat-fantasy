@@ -97,6 +97,8 @@ async function load(){
     const url = t => `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&headers=1&sheet=${encodeURIComponent(t)}&cb=${Date.now()}`;
     const [info, players, games, daily] = await Promise.all(TABS.map(t =>
       fetch(url(t)).then(r => { if (!r.ok) throw new Error(`${t} tab: HTTP ${r.status}`); return r.text(); }).then(parseCSV)));
+    if (!players.length || !("owner" in players[0]) || !info.length || !("key" in info[0]))
+      throw new Error("the Google Sheet doesn't have the notebook's tabs yet. Run the notebook in Colab (Runtime → Run all) until Cell 8 says 'Google Sheet updated', then refresh this page");
     const I = Object.fromEntries(info.map(r => [r.key, r.value]));
     const pts = {};
     ["dot","wicket","four","six","catch","runout_shared","runout_direct","stumping"].forEach(k => pts[k] = Number(I[k]) || 0);
@@ -125,7 +127,8 @@ async function load(){
           daily: daily.map(r => Object.assign({}, r, {date: String(r.date)}))});
   } catch (e) {
     console.error(e);
-    sub.innerHTML = `<b style="color:#dc2626">Couldn't load the scores (${e.message}).</b> Check the Google Sheet is shared as "Anyone with the link: Viewer" and SHEET_ID at the top of this page's script is right.`;
+    sub.innerHTML = `<b style="color:#dc2626">Couldn't load the scores: ${e.message}.</b><br>Also check the Google Sheet is shared as "Anyone with the link: Viewer".`;
+    document.querySelectorAll(".wrap > :not(h1):not(#sub)").forEach(el => el.style.display = "none");
   }
 }
 function main(D){
