@@ -37,7 +37,7 @@ body{margin:0;font-family:Barlow,system-ui,sans-serif;background:var(--grass);co
 .row .who small{display:block;font-family:Barlow,sans-serif;font-size:13px;font-weight:400;color:#BFD0C4;margin-top:6px}
 .row .num{font-family:var(--cond);font-weight:700;font-size:64px;line-height:.9;font-variant-numeric:tabular-nums;
           background:#0C2C20;padding:6px 14px 4px;border-radius:4px;min-width:3.4em;text-align:right;letter-spacing:.02em}
-.row.lead .num{box-shadow:inset 0 0 0 2px var(--chalk)}
+.row.leader .num{box-shadow:inset 0 0 0 2px var(--chalk)}
 
 /* ---- sections ---- */
 h2{font-family:var(--cond);font-weight:600;font-size:23px;margin:34px 0 12px;position:relative;padding-bottom:8px}
@@ -246,7 +246,7 @@ function main(D){
     if (ranked.length > 1) note = i === 0 ? (o.best === ranked[1].best ? "Level" : `Leads by ${f1(o.best - ranked[1].best)}`) : `Trails by ${f1(ranked[0].best - o.best)}`;
     const played = o.players.filter(p => p.matches > 0).length;
     const isLead = i === 0 && ranked.length > 1 && o.best > ranked[1].best;
-    return `<div class="row ${isLead ? "lead" : ""}">
+    return `<div class="row ${isLead ? "leader" : ""}">
       <span class="sw" style="background:${colorOf[o.name]}"></span>
       <div class="who">${o.name}<small>${note}. All ${o.players.length} players: ${f1(o.all)}, ${played} have played.</small></div>
       <div class="num" aria-label="${o.name} best-${D.best_n} total">${f1(o.best)}</div></div>`;
