@@ -81,6 +81,26 @@ tr.detail>td{background:#F7FAF6;padding:10px 14px}
 .rows.many .row{padding:8px 0}
 .rows.many .row .who{font-size:22px}
 .rows.many .row .sw{height:34px}
+.match{margin-bottom:12px;padding:16px 18px}
+.mhead{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.teams{font-family:var(--cond);font-size:22px;font-weight:600;margin-top:2px}
+.teams .vs{font-weight:400;color:var(--mute);font-size:17px;margin:0 4px}
+.tag{font-family:Barlow,sans-serif;font-size:11px;background:var(--seam);color:#fff;border-radius:3px;padding:1px 6px;vertical-align:middle}
+.share{display:flex;height:8px;border-radius:4px;overflow:hidden;margin:12px 0 14px;gap:2px}
+.grp{display:grid;grid-template-columns:150px 1fr;gap:8px 14px;align-items:start}
+.gname{display:flex;align-items:center;gap:7px;font-weight:600;padding-top:3px}
+.gname .cnt{margin-left:auto;font-family:var(--cond);font-size:18px;font-variant-numeric:tabular-nums}
+.gname.none{opacity:.45}
+.gps{display:flex;flex-wrap:wrap;gap:5px;padding-bottom:8px;border-bottom:1px solid #EEF2EC}
+.pchip{background:#F1F5EF;border:1px solid #DDE6DB;border-radius:6px;padding:3px 9px;font-size:13px}
+.bw td{vertical-align:top;padding:10px}
+.bchip{display:inline-flex;flex-direction:column;border-radius:8px;padding:6px 10px;margin:0 6px 6px 0;font-size:13px;border:1px solid;min-width:150px}
+.bchip em{font-style:normal;font-size:12px;margin-top:1px}
+.bchip small{font-size:11px;color:var(--mute)}
+.bchip.close{background:#E6F4EA;border-color:#9FD0AE}.bchip.close em{color:#1F7A3A}
+.bchip.near{background:#FFF4DE;border-color:#EDC77A}.bchip.near em{color:#9A6400}
+.bchip.far{background:#F1F3F1;border-color:#D7DDD6}.bchip.far em{color:var(--mute)}
+@media (max-width:600px){.grp{grid-template-columns:1fr}.gname{padding-top:0}.gps{border-bottom:0}}
 @media (max-width:600px){
   .row .num{font-size:44px}
   .rows.many .num{font-size:34px}
@@ -123,7 +143,7 @@ tr.detail>td{background:#F7FAF6;padding:10px 14px}
   <div class="hint">🔥 = top 3 in form across both teams. ❄️ = played at least twice in the last 3 matchdays but scored 5 points or fewer.</div>
 
   <h2>Bench watch: the fight for the top <span class="bn"></span></h2>
-  <div class="two" id="bench"></div>
+  <div id="bench"></div>
 
   <h2>Squads</h2>
   <div class="tabs" id="tabs"></div>
@@ -308,22 +328,25 @@ function main(D){
     el.innerHTML = s + "</svg>" + `<div class="legend">${[...OWN].sort((a,b) => val(lastR,b) - val(lastR,a)).map(o => `<span><i class="sw" style="background:${colorOf[o]}"></i>${o} ${f1(val(lastR,o))}</span>`).join("")}</div>`;
   })();
 
-  /* next matchday preview */
+  /* next matchday preview: one card per match, players grouped by drafter */
   (function preview(){
     const F = D.fixtures || [], el = $("preview");
     if (!F.length) { el.innerHTML = '<div class="card lead">No upcoming fixtures listed right now.</div>'; return; }
     const next = F.map(f => f.date).filter(Boolean).sort()[0];
     const day = F.filter(f => f.date === next);
     const plays = (p, f) => { const t = (p.team || "").toLowerCase(); return t && ((f.team1 || "").toLowerCase().includes(t) || (f.team2 || "").toLowerCase().includes(t)); };
-    const counts = OWN.map(o => ({o, n: sum(day, f => D.owners.find(x => x.name === o).players.filter(p => plays(p, f)).length)}));
-    let h = `<div class="legend">${counts.sort((a,b) => b.n - a.n).map(c => `<span><i class="sw" style="background:${colorOf[c.o]}"></i>${c.o}: ${c.n} in action</span>`).join("")}</div>`;
-    h += `<div class="scroll"><table><tr><th class="l">${fmtDate(next)}</th><th class="l">Drafted players in this match</th></tr>`;
+    let h = "";
     day.forEach(f => {
-      const ps = ALLP.filter(p => plays(p, f));
-      h += `<tr><td class="l"><b>${f.team1 || "TBA"}</b> vs <b>${f.team2 || "TBA"}</b>${f.status && f.status !== "PRE" ? ` <span class="lead">(${String(f.status).toLowerCase()})</span>` : ""}</td>`
-        + `<td class="l wrapcell">${ps.map(p => `<span class="chip" style="border-left:4px solid ${colorOf[p.owner]}">${p.name} <span class="lead">${p.owner}</span></span>`).join("") || '<span class="lead">–</span>'}</td></tr>`;
+      const groups = OWN.map(o => ({o, ps: ALLP.filter(p => p.owner === o && plays(p, f))})).sort((a,b) => b.ps.length - a.ps.length);
+      const total = sum(groups, g => g.ps.length) || 1;
+      const live = f.status && f.status !== "PRE" ? `<span class="tag">${String(f.status).toLowerCase()}</span>` : "";
+      h += `<div class="card match"><div class="mhead"><div><span class="lead">${fmtDate(next)}</span><div class="teams">${f.team1 || "TBA"} <span class="vs">vs</span> ${f.team2 || "TBA"} ${live}</div></div>
+            <div class="lead">${sum(groups, g => g.ps.length)} drafted players in this match</div></div>
+            <div class="share" title="Share of drafted players in this match">${groups.filter(g => g.ps.length).map(g => `<div style="flex:${g.ps.length};background:${colorOf[g.o]}" title="${g.o}: ${g.ps.length}"></div>`).join("")}</div>
+            <div class="grp">${groups.map(g => `<div class="gname ${g.ps.length ? "" : "none"}"><i class="sw" style="background:${colorOf[g.o]}"></i>${g.o}<span class="cnt">${g.ps.length}</span></div>
+              <div class="gps">${g.ps.length ? g.ps.map(p => `<span class="pchip">${p.name}</span>`).join("") : '<span class="lead">no players in this match</span>'}</div>`).join("")}</div></div>`;
     });
-    el.innerHTML = h + `</table></div><div class="hint">Based on each player's franchise. A listed player may not make the playing XI.</div>`;
+    el.innerHTML = h + `<div class="hint">Based on each player's franchise. A listed player may not make the playing XI.</div>`;
   })();
 
   /* matchday by matchday */
@@ -390,21 +413,23 @@ function main(D){
     $("form").innerHTML = list.length ? h : '<tr><td class="l lead">No matches yet.</td></tr>';
   })();
 
-  /* bench watch */
+  /* bench watch: one row per drafter */
   (function bench(){
-    $("bench").innerHTML = D.owners.map(o => {
+    const N = D.best_n;
+    let h = `<div class="scroll"><table class="bw"><tr><th class="l">Drafter</th><th class="l">Last player who counts (#${N})</th><th class="l">On the bench, and what they need to break in</th></tr>`;
+    D.owners.forEach(o => {
       const ps = [...o.players].sort((a,b) => a.rank - b.rank);
-      const cut = ps[D.best_n - 1];
-      const outside = ps.slice(D.best_n);
-      let h = `<div class="card"><div style="margin-bottom:8px">${oname(o.name)}</div>`;
-      if (!cut) return h + `<div class="lead">Fewer than ${D.best_n} players, so everyone counts.</div></div>`;
-      h += `<div class="lead" style="margin-bottom:8px">On the bubble (#${D.best_n}): <b style="color:var(--ink)">${cut.name}</b>, ${f1(cut.points)} pts</div>`;
-      h += `<table><tr><th class="l">#</th><th class="l">Player</th><th>Pts</th><th>Needs</th></tr>`
-        + outside.map(p => { const gap = cut.points - p.points;
-            return `<tr><td class="l">${p.rank}</td><td class="l">${p.name}${p.matches ? "" : ' <span class="lead">yet to play</span>'}</td><td>${f1(p.points)}</td><td>${gap <= 0 ? "level, on the edge" : "+" + f1(gap)}</td></tr>`; }).join("")
-        + `</table><div class="hint">"Needs" = points to draw level with #${D.best_n}.</div></div>`;
-      return h;
-    }).join("");
+      const cut = ps[N - 1];
+      if (!cut) { h += `<tr><td class="l">${oname(o.name)}</td><td class="l lead" colspan="2">Fewer than ${N} players, so everyone counts.</td></tr>`; return; }
+      const benchHTML = ps.slice(N).map(p => {
+        const gap = cut.points - p.points;
+        const need = gap <= 0 ? "level: any points put him in" : `${f1(gap)} behind`;
+        const cls = gap <= 0 ? "close" : gap <= 10 ? "near" : "far";
+        return `<span class="bchip ${cls}"><b>${p.name}</b> ${f1(p.points)} pts<em>${need}</em>${p.matches ? "" : '<small>yet to play</small>'}</span>`;
+      }).join("");
+      h += `<tr><td class="l">${oname(o.name)}</td><td class="l"><b>${cut.name}</b> <span class="lead">${f1(cut.points)} pts</span></td><td class="l wrapcell">${benchHTML}</td></tr>`;
+    });
+    $("bench").innerHTML = h + `</table></div><div class="hint">Only the best ${N} players score for the team. Green = level with #${N}, amber = within 10 points, grey = further back.</div>`;
   })();
 
   /* squad table */
